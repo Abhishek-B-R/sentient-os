@@ -96,8 +96,9 @@ enum ChatWindowing {
         return out
     }
 
-    /// UTF-8 byte size of a formatted line — the upper bound on its token count.
-    private static func msgBytes(_ m: ChatMessage) -> Int { m.text.utf8.count + 28 }   // + date/sender label overhead
+    /// UTF-8 byte size of the line `format` renders for this message, the upper bound on its token
+    /// count. Counts the sender too: a long contact name costs bytes on every line of a group chat.
+    private static func msgBytes(_ m: ChatMessage) -> Int { line(m).utf8.count }
 
     // MARK: Formatting — frame the window for the model
 
@@ -105,9 +106,11 @@ enum ChatWindowing {
         let mine = messages.lazy.filter(\.isFromMe).count
         var out = "Chat: \"\(chatName)\" (\(isGroup ? "group" : "direct message"))\n"
         out += "In this slice, you (\"Me\") sent \(mine) of \(messages.count) messages.\n"
-        for m in messages { out += "[\(dateString(m.date))] \(m.sender): \(m.text)\n" }
+        for m in messages { out += line(m) }
         return out
     }
+
+    private static func line(_ m: ChatMessage) -> String { "[\(dateString(m.date))] \(m.sender): \(m.text)\n" }
 
     /// Hard context backstop: trim a rendered window to `maxConversationBytes` on a message
     /// boundary, so the assembled chat prompt can never exceed the KV cache (which would make
